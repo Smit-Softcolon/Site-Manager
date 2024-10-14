@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<key>NSCameraUsageDescription</key>
 	<key>CFBundleDisplayName</key>
 	<string>SiteManager</string>
 	<key>CFBundleExecutable</key>
@@ -48,6 +50,20 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIBackgroundModes</key>
+	<array>
+  		<string>fetch</string>
+  		<string>location</string>
+	</array>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app requires access to your location when open.</string>
+
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app requires access to your location when in the background.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app requires access to your location both when open and in the background.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>
