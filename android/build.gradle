@@ -18,4 +18,13 @@ buildscript {
     }
 }
 
+allprojects {
+    repositories {
+        // ... other repositories
+        maven {
+            url "https://repo.transistorsoft.com/repository/maven-public/"
+        }
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"

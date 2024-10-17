@@ -9,6 +9,7 @@ import {Provider} from 'react-redux';
 import {store} from './state/store';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Attendance from './screens/Attendance';
+import MapScreen from './screens/MapScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -17,7 +18,9 @@ export type RootStackParamList = {
     siteName: string;
   };
   Attendance: undefined;
-  MapScreen: undefined;
+  MapScreen: {
+    type: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -60,6 +63,14 @@ const App = () => {
               headerStyle: styles.headerStyle,
             }}
             component={Attendance}
+          />
+          <Stack.Screen
+            name="MapScreen"
+            options={{
+              title: 'Map',
+              headerStyle: styles.headerStyle,
+            }}
+            component={MapScreen}
           />
         </Stack.Navigator>
       </NavigationContainer>
