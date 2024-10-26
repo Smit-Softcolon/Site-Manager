@@ -11,7 +11,6 @@ import React, {useEffect, useState} from 'react';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../App';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BackgroundFetch from 'react-native-background-fetch';
 import Geolocation from 'react-native-geolocation-service';
 import {useDispatch, useSelector} from 'react-redux';
 import {AppDispatch, RootState} from '../state/store';
@@ -227,16 +226,11 @@ const MapScreen: React.FC<MapProps> = ({navigation, route}) => {
             <Text style={styles.date}>{date}</Text>
           </View>
           <TouchableOpacity
-            onPress={moveToCurrentLocation}
-            style={styles.currentLocContainer}>
-            <MaterialIcons name="location-on" size={24} />
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={async () => {
-              if (type === 'Clock in' && !isInRange) {
+              if (type === 'Clock in' && isInRange) {
                 await dispatch(handleStartTracking());
                 await dispatch(configureBackgroundFetch());
-                await dispatch(setupLocationFetching());
+                // await dispatch(setupLocationFetching());
                 navigation.goBack();
               } else if (type === 'Clock out') {
                 await dispatch(handleStopTracking(false));
@@ -248,9 +242,16 @@ const MapScreen: React.FC<MapProps> = ({navigation, route}) => {
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.distanceContainer}>
-        <Text style={styles.distanceTxt}>{distanceMsg}</Text>
-      </View>
+      <TouchableOpacity
+        onPress={moveToCurrentLocation}
+        style={styles.currentLocContainer}>
+        <MaterialIcons name="location-on" size={24} />
+      </TouchableOpacity>
+      {!isInRange && (
+        <View style={styles.distanceContainer}>
+          <Text style={styles.distanceTxt}>{distanceMsg}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -318,9 +319,9 @@ const styles = StyleSheet.create({
   },
   currentLocContainer: {
     position: 'absolute',
-    bottom: height * 0.08,
-    right: 10,
-    backgroundColor: 'white',
+    top: 20,
+    right: 20,
+    backgroundColor: '#ffcccb',
     padding: 10,
     borderRadius: 5,
     shadowColor: '#000',

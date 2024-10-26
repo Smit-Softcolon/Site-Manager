@@ -32,18 +32,18 @@ type LoginProps = NativeStackScreenProps<RootStackParamList, 'Login'>;
 const Login = ({navigation}: LoginProps) => {
   const handleLogin = (values: any) => {
     console.log(values);
-    navigation.replace('HomePage', {siteName: 'Ananta'});
-  }
+    navigation.replace('HomePage', {
+      siteName: 'Ananta',
+    });
+  };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{flex: 1}}
-    >
-      <ScrollView 
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{flex: 1}}>
+      <ScrollView
         contentContainerStyle={styles.scrollViewContent}
-        keyboardShouldPersistTaps="handled"
-      >
+        keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
           <Image source={AppImages.KEY_LOGIN} style={styles.sticker} />
           <Text style={styles.title}>Login</Text>

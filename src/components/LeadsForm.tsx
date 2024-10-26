@@ -18,107 +18,89 @@ import {
 } from 'react-native-image-picker';
 import {useDispatch} from 'react-redux';
 import {add} from '../state/expanseSlice';
+import {addLeads} from '../state/leadsSlice';
 
 const {width, height} = Dimensions.get('window');
 
 const validationSchema = Yup.object().shape({
-  amount: Yup.number()
-    .required('Amount is required')
-    .moreThan(0, 'Amount must be greater than 0'),
-  description: Yup.string().required('Description is required'),
+  name: Yup.string().required('Name is required'),
+  number: Yup.string()
+    .matches(/^[0-9]{10}$/, 'Mobile number must be exactly 10 digits')
+    .required('Mobile number is required'),
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  desc: Yup.string().required('Description is required'),
 });
 
-const Expense = () => {
-  const [thumbnail, setThumbnail] = useState<{uri?: string}>({});
-  const [isImageSelected, setIsImageSelected] = useState(false);
+const LeadsForm = () => {
   const dispatch = useDispatch();
-
-  const selectImage = async () => {
-    const options: ImageLibraryOptions = {
-      mediaType: 'photo',
-      quality: 1,
-      includeBase64: true,
-    };
-    const result = await launchImageLibrary(options);
-    if (!result.didCancel && result.assets) {
-      const photoData = {
-        uri: result.assets[0].uri,
-        type: result.assets[0].type,
-        name: result.assets[0].fileName,
-      };
-      setThumbnail(photoData);
-      setIsImageSelected(true);
-    }
-    if (result.errorMessage) console.log('error');
-  };
-
   return (
     <Formik
-      initialValues={{amount: '', description: ''}}
+      initialValues={{name: '', number: '', email: '', desc: ''}}
       validationSchema={validationSchema}
       onSubmit={(values, {resetForm}) => {
-        setIsImageSelected(false);
-        setThumbnail({uri: ''});
         resetForm();
-        dispatch(add({amount: values.amount, description: values.description}));
+        dispatch(
+          addLeads({
+            name: values.name,
+            number: values.number,
+            email: values.email,
+            desc: values.desc,
+          }),
+        );
       }}>
       {({handleChange, handleBlur, handleSubmit, values, errors, touched}) => (
         <View style={styles.mainContainer}>
           <View style={styles.inputContainer}>
             <TextInput
-              keyboardType="number-pad"
               style={styles.inputField}
-              placeholder="Enter amount"
-              onChangeText={handleChange('amount')}
-              onBlur={handleBlur('amount')}
-              value={values.amount}
+              placeholder="Enter name"
+              onChangeText={handleChange('name')}
+              onBlur={handleBlur('name')}
+              value={values.name}
             />
-            {errors.amount && touched.amount && (
-              <Text style={styles.errorText}>{errors.amount}</Text>
+            {errors.name && touched.name && (
+              <Text style={styles.errorText}>{errors.name}</Text>
+            )}
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              keyboardType="number-pad"
+              style={[styles.inputField, {marginTop: 10}]}
+              placeholder="Enter phone number"
+              onChangeText={handleChange('number')}
+              onBlur={handleBlur('number')}
+              value={values.number}
+            />
+            {errors.number && touched.number && (
+              <Text style={styles.errorText}>{errors.number}</Text>
             )}
           </View>
 
           <View style={styles.inputContainer}>
             <TextInput
               style={[styles.inputField, {marginTop: 10}]}
-              placeholder="Description"
-              onChangeText={handleChange('description')}
-              onBlur={handleBlur('description')}
-              value={values.description}
+              placeholder="Enter email"
+              onChangeText={handleChange('email')}
+              onBlur={handleBlur('email')}
+              value={values.email}
             />
-            {errors.description && touched.description && (
-              <Text style={styles.errorText}>{errors.description}</Text>
+            {errors.email && touched.email && (
+              <Text style={styles.errorText}>{errors.email}</Text>
             )}
           </View>
 
-          {!isImageSelected && (
-            <TouchableOpacity
-              style={styles.addImageContainer}
-              onPress={selectImage}>
-              <MaterialIcons name="upload" size={22} color="black" />
-              <Text style={styles.imageText}>Upload Image</Text>
-            </TouchableOpacity>
-          )}
-          {isImageSelected && (
-            <View style={styles.imageContainer}>
-              <Image
-                style={styles.image}
-                source={{uri: thumbnail?.uri}}
-                resizeMode="cover"
-              />
-              <View style={styles.crossButton}>
-                <MaterialIcons
-                  name="cancel"
-                  size={22}
-                  color="red"
-                  onPress={() => {
-                    setIsImageSelected(false);
-                    setThumbnail({uri: ''});
-                  }}
-                />
-              </View>
-            </View>
-          )}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.inputField, {marginTop: 10}]}
+              placeholder="Enter description"
+              onChangeText={handleChange('desc')}
+              onBlur={handleBlur('desc')}
+              value={values.desc}
+            />
+            {errors.desc && touched.desc && (
+              <Text style={styles.errorText}>{errors.desc}</Text>
+            )}
+          </View>
 
           <TouchableOpacity
             style={styles.button}
@@ -131,7 +113,7 @@ const Expense = () => {
   );
 };
 
-export default Expense;
+export default LeadsForm;
 
 const styles = StyleSheet.create({
   mainContainer: {

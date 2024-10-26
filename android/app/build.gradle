@@ -81,9 +81,22 @@ android {
     defaultConfig {
         applicationId "com.sitemanager"
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
+    }
+    sourceSets {
+        main {
+            assets.srcDirs = ['src/main/assets', '../../assets']
+        }
+    }
+    splits {
+        abi {
+            enable true
+            reset()
+            include "armeabi-v7a", "arm64-v8a", "x86"
+            universalApk true
+        }
     }
     signingConfigs {
         debug {
@@ -116,6 +129,12 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
-    implementation project(':react-native-background-fetch')
 }
+
+tasks.whenTaskAdded { task ->
+    if (task.name == 'generateDebugLintReportModel') {
+        task.dependsOn(':app:copyReactNativeVectorIconFonts')
+    }
+}
+
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle"); 

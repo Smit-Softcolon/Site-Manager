@@ -10,7 +10,6 @@ const PunchLocation = () => {
   const punchList = useSelector(
     (state: RootState) => state.mapData.locationDataList,
   );
-  console.log('punchList', punchList);
 
   return (
     <View style={styles.container}>

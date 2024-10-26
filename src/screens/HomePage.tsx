@@ -1,8 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import {
+  Alert,
   Dimensions,
+  Linking,
+  NativeModules,
   PermissionsAndroid,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,26 +14,29 @@ import {
   View,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../App';
 import AppColors from '../utils/AppColors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Expanse from '../components/Expanse';
 import ExpanseHistory from '../components/ExpanseHistory';
 import {useDispatch, useSelector} from 'react-redux';
+import {PERMISSIONS, RESULTS, check, request} from 'react-native-permissions';
 import {
   setDayDateMonth,
   setIsTracking,
   setTodaysClockInTime,
 } from '../state/fetchLocation';
 import {RootState, AppDispatch} from '../state/store';
-
-type HomePageProps = NativeStackScreenProps<RootStackParamList, 'HomePage'>;
+import BackgroundService from 'react-native-background-actions';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../App';
+import Tab from '../components/Tab';
 
 const {width, height} = Dimensions.get('window');
 
-const HomePage: React.FC<HomePageProps> = ({navigation, route}) => {
+type HomePageProps = NativeStackScreenProps<RootStackParamList, 'HomePage'>;
+
+const HomePage = ({route, navigation}: HomePageProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const isTracking = useSelector(
     (state: RootState) => state.mapData.isTracking,
@@ -50,7 +57,23 @@ const HomePage: React.FC<HomePageProps> = ({navigation, route}) => {
       await requestLocationPermission();
     };
 
+    navigation.setOptions({
+      headerRight: () => {
+        return (
+          <TouchableOpacity
+            onPress={() => {
+              navigation.navigate('Messages');
+            }}>
+            <MaterialIcons name="notifications-active" size={24} />
+          </TouchableOpacity>
+        );
+      },
+    });
+
     setup();
+
+    const isRunning = BackgroundService.isRunning();
+    console.log('Background service is running', isRunning);
 
     navigation.setOptions({
       title: 'Welcome to ' + route.params.siteName,
@@ -111,6 +134,7 @@ const HomePage: React.FC<HomePageProps> = ({navigation, route}) => {
       try {
         const auth = await Geolocation.requestAuthorization('always');
         if (auth === 'granted') {
+          Linking.openURL('app-settings:');
           console.log('Location permission granted');
         } else {
           console.log('Location permission denied');
@@ -133,6 +157,7 @@ const HomePage: React.FC<HomePageProps> = ({navigation, route}) => {
           },
         );
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          await request(PERMISSIONS.ANDROID.ACCESS_BACKGROUND_LOCATION);
           console.log('Location permission granted');
         } else {
           console.log('Location permission denied');
@@ -142,6 +167,153 @@ const HomePage: React.FC<HomePageProps> = ({navigation, route}) => {
       }
     }
   };
+
+  ///option 2
+  //   const openAppSettings = async () => {
+  //   if (Platform.OS === 'ios') {
+  //     await Linking.openSettings();
+  //   } else {
+  //     try {
+  //       // Using Android's native ACTION_APPLICATION_DETAILS_SETTINGS
+  //       const androidPackage = NativeModules.BuildConfig?.APPLICATION_ID ||
+  //                            'com.sitemanager'; // replace with your app's package name
+  //       const uri = `package:${androidPackage}`;
+  //       await Linking.openSettings();
+  //     } catch (error) {
+  //       console.error('Failed to open settings:', error);
+  //       // Fallback to opening general settings
+  //       try {
+  //         await Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+  //       } catch (fallbackError) {
+  //         console.error('Failed to open location settings:', fallbackError);
+  //       }
+  //     }
+  //   }
+  // };
+
+  // const requestLocationPermission = async () => {
+  //   if (Platform.OS === 'ios') {
+  //     try {
+  //       const auth = await Geolocation.requestAuthorization('always');
+  //       if (auth === 'granted') {
+  //         console.log('Location permission granted');
+  //       } else {
+  //         await openAppSettings();
+  //       }
+  //     } catch (err) {
+  //       console.warn(err);
+  //       await openAppSettings();
+  //     }
+  //   } else if (Platform.OS === 'android') {
+  //     try {
+  //       const granted = await PermissionsAndroid.request(
+  //         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+  //         {
+  //           title: 'Location Permission Required',
+  //           message:
+  //             'This app needs access to your location all the time. ' +
+  //             'Please enable "Allow all the time" in the next screen.',
+  //           buttonNeutral: 'Ask Me Later',
+  //           buttonNegative: 'Cancel',
+  //           buttonPositive: 'OK',
+  //         },
+  //       );
+
+  //       // Regardless of the permission result, open settings
+  //       // This allows users to enable "Allow all the time"
+  //       await openAppSettings();
+
+  //     } catch (err) {
+  //       console.warn(err);
+  //       await openAppSettings();
+  //     }
+  //   }
+  // };
+
+  /// option 3
+
+  // const openAppLocationSettings = async () => {
+  //   if (Platform.OS === 'ios') {
+  //     await Linking.openSettings();
+  //   } else {
+  //     try {
+  //       // First try to open the app's location permission settings directly
+  //       const packageName = NativeModules.BuildConfig?.APPLICATION_ID || 'com.sitemanager';
+  //       await Linking.openSettings();
+
+  //       // If you specifically want to open directly to location settings, you can use this instead:
+  //       // await Linking.sendIntent('android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION', {
+  //       //   data: 'package:' + NativeModules.BuildConfig?.APPLICATION_ID || 'com.sitemanager'
+  //       // });
+
+  //       // Another alternative specifically for location:
+  //       // await Linking.sendIntent('android.settings.MANAGE_APPLICATIONS_SETTINGS');
+
+  //     } catch (error) {
+  //       console.error('Failed to open app settings:', error);
+  //       try {
+  //         // Fallback to general location settings
+  //         await Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+  //       } catch (fallbackError) {
+  //         console.error('Failed to open location settings:', fallbackError);
+  //         // Last resort: try to open general app settings
+  //         await Linking.openSettings();
+  //       }
+  //     }
+  //   }
+  // };
+
+  // const requestLocationPermission = async () => {
+  //   if (Platform.OS === 'ios') {
+  //     try {
+  //       const auth = await Geolocation.requestAuthorization('always');
+  //       if (auth === 'granted') {
+  //         console.log('Location permission granted');
+  //       } else {
+  //         await openAppLocationSettings();
+  //       }
+  //     } catch (err) {
+  //       console.warn(err);
+  //       await openAppLocationSettings();
+  //     }
+  //   } else if (Platform.OS === 'android') {
+  //     try {
+  //       const granted = await PermissionsAndroid.request(
+  //         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+  //         {
+  //           title: 'Location Permission Required',
+  //           message:
+  //             'This app needs access to your location all the time. ' +
+  //             'Please enable "Allow all the time" in the next screen.',
+  //           buttonNeutral: 'Ask Me Later',
+  //           buttonNegative: 'Cancel',
+  //           buttonPositive: 'OK',
+  //         },
+  //       );
+
+  //       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+  //         // If permission not granted, show alert and then open settings
+  //         Alert.alert(
+  //           'Location Permission',
+  //           'Please enable location permission with "Allow all the time" option for proper functionality.',
+  //           [
+  //             {
+  //               text: 'Open Settings',
+  //               onPress: openAppLocationSettings
+  //             },
+  //             {
+  //               text: 'Cancel',
+  //               style: 'cancel'
+  //             }
+  //           ]
+  //         );
+  //       }
+  //     } catch (err) {
+  //       console.warn(err);
+  //       await openAppLocationSettings();
+  //     }
+  //   }
+  // };
 
   return (
     <View style={{flex: 1, backgroundColor: '#fff'}}>
@@ -198,11 +370,96 @@ const HomePage: React.FC<HomePageProps> = ({navigation, route}) => {
               Continuous punch-in is active till 12:00 AM
             </Text>
           </View>
-          <Text style={styles.title}>Add Expense</Text>
+          {/* <Text style={styles.title}>Add Expense</Text>
           <Expanse />
           <Text style={styles.title}>Expenses History</Text>
           <View style={styles.historyView}>
             <ExpanseHistory />
+          </View> */}
+          <View style={styles.tabContainer}>
+            <Pressable
+              onPress={() => {
+                navigation.navigate('ExpanseScreen');
+              }}>
+              <Tab
+                iconName="currency-rupee"
+                color={AppColors.mediumRed}
+                title="Expanses"
+                desc="Add expanses and view history"
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                navigation.navigate('SiteDetails');
+              }}>
+              <Tab
+                iconName="location-city"
+                color={AppColors.purple}
+                title="Site details"
+                desc="View and share site details"
+              />
+            </Pressable>
+          </View>
+          <View style={styles.tabContainer}>
+            <Pressable
+              onPress={() => {
+                navigation.navigate('AddLeads');
+              }}>
+              <Tab
+                iconName="leaderboard"
+                color={AppColors.green}
+                title="Add leads"
+                desc="Add customer leads here"
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                // navigation.navigate('LocationLogs');
+              }}>
+              <Tab
+                iconName="construction"
+                color={AppColors.brown}
+                title="Site Progress"
+                desc="View site progress here"
+              />
+            </Pressable>
+          </View>
+          <View style={styles.tabContainer}>
+            <Pressable
+              onPress={() => {
+                navigation.navigate('ApplyLeave');
+              }}>
+              <Tab
+                iconName="exit-to-app"
+                color={AppColors.orange}
+                title="Apply leave"
+                desc="Apply for your next leave here"
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                navigation.navigate('LocationLogs');
+              }}>
+              <Tab
+                iconName="location-on"
+                color={AppColors.mediumRed}
+                title="Location logs"
+                desc="View all attendance logs here"
+              />
+            </Pressable>
+          </View>
+          <View style={styles.tabContainer}>
+            <Pressable
+              onPress={() => {
+                navigation.navigate('Profile');
+              }}>
+              <Tab
+                iconName="person"
+                color={AppColors.blue}
+                title="Profile"
+                desc="Edit your profile"
+              />
+            </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -230,6 +487,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: height * 0.025,
     marginBottom: height * 0.015,
+  },
+  tabContainer: {
+    width: width * 0.95,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   day: {
     color: 'gray',

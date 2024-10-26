@@ -1,8 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import BackgroundFetch from "react-native-background-fetch";
 import Geolocation from 'react-native-geolocation-service';
 import { RootState } from "./store";
+import BackgroundService from 'react-native-background-actions';
+
+const sleep = (time: number) =>
+    new Promise<void>(resolve => setTimeout(() => resolve(), time));
 
 const initialState = {
     day: '',
@@ -23,44 +26,80 @@ export const configureBackgroundFetch = createAsyncThunk(
     async (_, { getState, dispatch }) => {
         console.log('[BackgroundFetch] Configuring...');
 
+        const options = {
+            taskName: 'FetchLocation',
+            taskTitle: 'Fetching location',
+            taskDesc: 'This app is fetching location',
+            taskIcon: {
+                name: 'ic_launcher',
+                type: 'mipmap',
+            },
+            color: '#ff00ff',
+            linkingURI: 'yourSchemeHere://chat/jane',
+            parameters: {
+                delay: 900000,
+                // delay: 14000,
+            },
+        };
+
         const state = getState() as RootState;
 
-        try {
-            BackgroundFetch.status(status => {
-                console.log('[BackgroundFetch] Status:', status);
-                console.log(status === BackgroundFetch.STATUS_RESTRICTED, "configureBackgroundFetch");
-                console.log(status === BackgroundFetch.STATUS_AVAILABLE, "configureBackgroundFetch");
-                console.log(status === BackgroundFetch.STATUS_DENIED, "configureBackgroundFetch");
-            });
-
-            await BackgroundFetch.configure(
-                {
-                    minimumFetchInterval: 15,
-                    stopOnTerminate: false,
-                    startOnBoot: true,
-                    enableHeadless: true,
-                    forceAlarmManager: false,
-                },
-                async taskId => {
-                    console.log('[BackgroundFetch] Task: ', taskId);
-                    console.log(state.mapData.isTracking, "configureBackgroundFetch");
-
-                    if (state.mapData.isTracking) {
-                        await dispatch(fetchAndAddLocation('background'));
-                        console.log("background", Date.now());
-
-                        // console.log('configureBackgroundFetch');
+        const veryIntensiveTask = async (taskDataArguments: any) => {
+            const { delay } = taskDataArguments;
+            await new Promise(async resolve => {
+                for (let i = 0; BackgroundService.isRunning(); i++) {
+                    try {
+                        if (state.mapData.isTracking) {
+                            await dispatch(fetchAndAddLocation('Punch'));
+                        }
+                        await sleep(delay);
+                    } catch (e) {
+                        console.log(e);
                     }
-                    BackgroundFetch.finish(taskId);
-                },
-                error => {
-                    console.log('[BackgroundFetch] Failed to configure:', error);
-                },
+                }
+            });
+        };
 
-            );
-        } catch (error) {
-            console.error('Failed to configure background fetch:', error);
-        }
+        // try {
+        //     BackgroundFetch.status(status => {
+        //         console.log('[BackgroundFetch] Status:', status);
+        //         console.log(status === BackgroundFetch.STATUS_RESTRICTED, "configureBackgroundFetch");
+        //         console.log(status === BackgroundFetch.STATUS_AVAILABLE, "configureBackgroundFetch");
+        //         console.log(status === BackgroundFetch.STATUS_DENIED, "configureBackgroundFetch");
+        //     });
+
+        //     await BackgroundFetch.configure(
+        //         {
+        //             minimumFetchInterval: 15,
+        //             stopOnTerminate: false,
+        //             startOnBoot: true,
+        //             enableHeadless: true,
+        //             forceAlarmManager: false,
+        //         },
+        //         async taskId => {
+        //             console.log('[BackgroundFetch] Task: ', taskId);
+        //             console.log(state.mapData.isTracking, "configureBackgroundFetch");
+
+        //             if (state.mapData.isTracking) {
+        //                 await dispatch(fetchAndAddLocation('background'));
+        //                 console.log("background", Date.now());
+
+        //                 // console.log('configureBackgroundFetch');
+        //             }
+        //             BackgroundFetch.finish(taskId);
+        //         },
+        //         error => {
+        //             console.log('[BackgroundFetch] Failed to configure:', error);
+        //         },
+
+        //     );
+        // } catch (error) {
+        //     console.error('Failed to configure background fetch:', error);
+        // }
+        await BackgroundService.start(veryIntensiveTask, options);
+        await BackgroundService.updateNotification({
+            taskDesc: 'Fetching location',
+        });
     }
 );
 
@@ -69,7 +108,7 @@ export const setLastFetchTime = createAsyncThunk(
     async (time: number) => {
         try {
             console.log('setLastFetchTime', time);
-            
+
             await AsyncStorage.setItem("LAST_FETCH_TIME", time.toString());
         } catch (error) {
             console.error('Error saving last fetch time:', error);
@@ -82,17 +121,17 @@ export const handleStopTracking = createAsyncThunk(
     async (clearLocations: boolean, { getState, dispatch }) => {
         try {
             const state = getState() as RootState;
+            await dispatch(fetchAndAddLocation('Out'));
 
             dispatch(setIsTracking(false));
             await AsyncStorage.setItem('isTracking', 'false');
             await AsyncStorage.removeItem('lastTrackingDate');
             await AsyncStorage.removeItem('LAST_FETCH_TIME');
             if (clearLocations) await AsyncStorage.removeItem('locations');
-            // console.log('Clearing timeout:', state.mapData.timeOutId);
+            await BackgroundService.stop();
 
             if (state.mapData.timeOutId) {
                 // console.log("clearing timeout");
-
                 clearTimeout(state.mapData.timeOutId);
             }
         } catch (error) {
@@ -123,12 +162,21 @@ export const fetchAndAddLocation = createAsyncThunk(
     'map/fetchAndAddLocation',
     async (source: string, { getState, dispatch }) => {
         console.log('fetchAndAddLocation', source);
-
         const state = getState() as RootState;
+        console.log('1');
 
         const now = new Date();
+        console.log('2');
+
         const currentTime = now.getHours() * 60 + now.getMinutes();
+        console.log('3');
+
         const midnightTime = 24 * 60;
+        console.log('4');
+        console.log(currentTime, midnightTime, "Current Time");
+        console.log(currentTime >= midnightTime - 1 && currentTime < midnightTime, "Current Time");
+
+
 
         if (currentTime >= midnightTime - 1 && currentTime < midnightTime) {
             await dispatch(handleStopTracking(true));
@@ -138,9 +186,14 @@ export const fetchAndAddLocation = createAsyncThunk(
         Geolocation.getCurrentPosition(
             async (position: { coords: { latitude: any; longitude: any } }) => {
                 const { latitude, longitude } = position.coords;
+                console.log('fetchAndAddLocation', latitude, longitude);
                 dispatch(setLatitudeLongitude({ latitude, longitude }));
+                console.log("123");
+
                 const timestamp = new Date().toISOString();
+                console.log("123");
                 const locationData = { latitude, longitude, timestamp, source };
+                console.log("123");
 
                 try {
                     console.log("smit");
@@ -151,17 +204,22 @@ export const fetchAndAddLocation = createAsyncThunk(
                         ? JSON.parse(existingLocations)
                         : [];
 
+                    console.log("smit");
+
                     // Add new location
                     locations.push(locationData);
+                    console.log("smit");
 
                     // console.log('Location:', locations);
 
 
                     dispatch(setLocationList(locations));
+                    console.log("smit");
 
                     // Store updated locations
                     await AsyncStorage.setItem('locations', JSON.stringify(locations));
-                    await dispatch(setLastFetchTime(Date.now()));
+                    console.log("smit");
+                    // await dispatch(setLastFetchTime(Date.now()));
                 } catch (error) {
                     console.error('Failed to store location:', error);
                 }
@@ -171,6 +229,23 @@ export const fetchAndAddLocation = createAsyncThunk(
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
         );
+    }
+);
+
+export const getLocationsFromAsyncStorage = createAsyncThunk(
+    'map/getLocationsFromAsyncStorage',
+    async (_, { dispatch }) => {
+        try {
+            const existingLocations = await AsyncStorage.getItem('locations');
+            const locations = existingLocations
+                ? JSON.parse(existingLocations)
+                : [];
+
+
+            dispatch(setLocationList(locations));
+        } catch (error) {
+            console.error('Failed to get locations from AsyncStorage:', error);
+        }
     }
 );
 
@@ -206,7 +281,7 @@ export const setupLocationFetching = createAsyncThunk(
 
         const lastFetchTime = await dispatch(getLastFetchTime()).unwrap();
         console.log('Last fetch time:', lastFetchTime);
-        
+
 
         const now = Date.now();
         const timeSinceLastFetch = now - lastFetchTime;
@@ -279,23 +354,33 @@ export const MapSlice = createSlice({
         },
         setIsTracking: (state, action: PayloadAction<boolean>) => {
             state.isTracking = action.payload;
-            if (action.payload) {
-                BackgroundFetch.start();
-            } else {
-                BackgroundFetch.stop();
-            }
         },
         setTodaysClockInTime: (state, action: PayloadAction<string>) => {
             state.clockInTime = action.payload;
         },
         setLocationList: (state, action: PayloadAction<any[]>) => {
-            action.payload.forEach((location) => {
+            state.locationDataList = [];
+            var currentDate = Date.now();
+            var date = new Date(currentDate).toLocaleDateString('en-GB');
+
+            var entryList = action.payload.filter((location) => {
+                var entryDate = new Date(location.timestamp).toLocaleDateString('en-GB');
+                return entryDate === date;
+            });
+
+            entryList.forEach((location, index) => {
 
                 var id = Math.random().toString(36).substring(7);
 
-                location.id = id;
+                if (index == 0) {
+                    location.source = 'In';
+                }
 
-                // console.log(location, "setLocationList");
+                if (index !== 0 && entryList[index - 1].source === 'Out') {
+                    location.source = 'In';
+                }
+
+                location.id = id;
 
                 state.locationDataList.push(location);
             });

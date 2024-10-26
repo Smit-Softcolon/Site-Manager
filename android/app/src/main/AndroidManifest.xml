@@ -3,6 +3,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FORGROUND_SERVICE" />
+
+    <queries>
+    <package android:name="com.whatsapp" />
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="whatsapp" />
+    </intent>
+</queries>
 
     <application
       android:name=".MainApplication"
@@ -24,5 +34,10 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+      <meta-data
+        android:name="com.google.android.geo.API_KEY"
+        android:value="AIzaSyCHEiVWMzIlEdKSbq3n2wENWbn_FMas8-A" />
+      <service android:name="com.voximplant.forgroundservice.VIForgroundService" />
+      <service android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask" android:foregroundServiceType="shortService"/>
     </application>
 </manifest>
